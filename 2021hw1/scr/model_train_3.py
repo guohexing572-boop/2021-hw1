@@ -6,9 +6,11 @@ import torch
 from torch.utils.data import DataLoader,random_split
 import torchvision.transforms as transforms
 import torch.optim as optim
-from tools.hw1_dataset import COVIDRegressionDataset,TransformedSubset
+from tools.hw1_dataset import COVIDRegressionDataset_3,TransformedSubset
 from tools.hw1_model import hw1
-from  tools.hw1_commom_tools import plot_loss_curves
+from  tools.hw1_commom_tools import plot_loss_curves,get_trained_model_feature_importance
+
+#训练结束后观察哪个feature更重要
 
 # 设置基础路径和设备
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -47,7 +49,7 @@ if __name__ == "__main__":
         return torch.FloatTensor(feature)
 
     # 创建完整训练数据集
-    full_train_data = COVIDRegressionDataset(
+    full_train_data = COVIDRegressionDataset_3(
         path=train_csv_path,
         transform=None,  # 先不应用transform
         normalize=True
@@ -78,7 +80,7 @@ if __name__ == "__main__":
     valid_loader = DataLoader(dataset=valid_data, batch_size=BATCH_SIZE)
 
     # ============================ step 2/5 模型定义 ============================
-    model = hw1(input_size=94,hidden_size=128,output_size=1)
+    model = hw1(input_size=45,hidden_size=128,output_size=1)
     model.to(device)  # 将模型移动到设备（GPU/CPU）
 
     # ============================ step 3/5 损失函数 ============================
@@ -110,7 +112,7 @@ if __name__ == "__main__":
         train_losses.append(avg_train_loss)
 
         # 验证阶段
-
+        # 当前代码：只在 val_interval 时记录验证损失
         if epoch % val_interval == 0:  # 这样 val_losses 长度会小于 train_losses
             model.eval()
             val_loss = 0.0
@@ -146,6 +148,47 @@ if __name__ == "__main__":
     print(time_str)
     picture_path = os.path.join(BASE_DIR, "..", "results", time_str,'loss_curves.png')
     plot_loss_curves(train_losses, val_losses, picture_path)
+
+
+    # ============================ 计算特征重要性 ============================
+    # 准备测试数据用于特征重要性分析
+    print("\n=== 计算特征重要性 ===")
+
+    # 收集验证集的所有数据
+    val_features = []
+    val_targets = []
+    model.eval()
+    with torch.no_grad():
+        for data, target in valid_loader:
+            val_features.append(data.cpu().numpy())
+            val_targets.append(target.cpu().numpy())
+
+    # 合并所有batch的数据
+    val_features = np.vstack(val_features)
+    val_targets = np.concatenate(val_targets)
+
+    print(f"验证集特征形状: {val_features.shape}")
+    print(f"验证集目标形状: {val_targets.shape}")
+
+    # 计算特征重要性
+    importance_df = get_trained_model_feature_importance(
+        model=model,
+        test_features=val_features,
+        test_targets=val_targets
+    )
+
+    print("特征重要性排序:")
+    print(importance_df.head(20))  # 显示前20个最重要的特征
+
+    # 保存特征重要性结果
+    importance_csv_path = os.path.join(log_dir, "feature_importance.csv")
+    importance_df.to_csv(importance_csv_path, index=False)
+    print(f"特征重要性已保存至: {importance_csv_path}")
+
+
+
+
+
 
 
 

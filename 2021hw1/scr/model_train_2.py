@@ -6,9 +6,11 @@ import torch
 from torch.utils.data import DataLoader,random_split
 import torchvision.transforms as transforms
 import torch.optim as optim
-from tools.hw1_dataset import COVIDRegressionDataset,TransformedSubset
+from tools.hw1_dataset import COVIDRegressionDataset,TransformedSubset,COVIDRegressionDataset_2
 from tools.hw1_model import hw1
 from  tools.hw1_commom_tools import plot_loss_curves
+
+#只用前40+57+75的特征
 
 # 设置基础路径和设备
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -47,7 +49,7 @@ if __name__ == "__main__":
         return torch.FloatTensor(feature)
 
     # 创建完整训练数据集
-    full_train_data = COVIDRegressionDataset(
+    full_train_data = COVIDRegressionDataset_2(
         path=train_csv_path,
         transform=None,  # 先不应用transform
         normalize=True
@@ -78,7 +80,7 @@ if __name__ == "__main__":
     valid_loader = DataLoader(dataset=valid_data, batch_size=BATCH_SIZE)
 
     # ============================ step 2/5 模型定义 ============================
-    model = hw1(input_size=94,hidden_size=128,output_size=1)
+    model = hw1(input_size=42,hidden_size=128,output_size=1)
     model.to(device)  # 将模型移动到设备（GPU/CPU）
 
     # ============================ step 3/5 损失函数 ============================
@@ -110,7 +112,7 @@ if __name__ == "__main__":
         train_losses.append(avg_train_loss)
 
         # 验证阶段
-
+        # 当前代码：只在 val_interval 时记录验证损失
         if epoch % val_interval == 0:  # 这样 val_losses 长度会小于 train_losses
             model.eval()
             val_loss = 0.0
@@ -146,6 +148,8 @@ if __name__ == "__main__":
     print(time_str)
     picture_path = os.path.join(BASE_DIR, "..", "results", time_str,'loss_curves.png')
     plot_loss_curves(train_losses, val_losses, picture_path)
+
+
 
 
 

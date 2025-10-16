@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader,random_split
 import torchvision.transforms as transforms
 import torch.optim as optim
 from tools.hw1_dataset import COVIDRegressionDataset,TransformedSubset
-from tools.hw1_model import hw1
+from tools.hw1_model import hw1_2
 from  tools.hw1_commom_tools import plot_loss_curves
 
 # 设置基础路径和设备
@@ -78,7 +78,7 @@ if __name__ == "__main__":
     valid_loader = DataLoader(dataset=valid_data, batch_size=BATCH_SIZE)
 
     # ============================ step 2/5 模型定义 ============================
-    model = hw1(input_size=94,hidden_size=128,output_size=1)
+    model = hw1_2(input_size=94,hidden_size=128,output_size=1)
     model.to(device)  # 将模型移动到设备（GPU/CPU）
 
     # ============================ step 3/5 损失函数 ============================
